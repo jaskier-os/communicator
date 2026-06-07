@@ -1,0 +1,55 @@
+# Dependencies
+node_modules/
+
+# Environment files
+.env
+.env.local
+.env.production
+.env.*.local
+
+# Credentials / secrets
+yandex-cloud-key.json
+*.pem
+*.crt
+*.key
+*.p12
+*.pfx
+
+# Logs
+*.log
+logs/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Build output
+dist/
+build/
+
+# Test coverage
+coverage/
+.nyc_output/
+
+# Caches
+.cache/
+.npm/
+
+# Temporary files
+tmp/
+temp/
+
+# Python (none expected, defensive)
+__pycache__/
+*.pyc
+venv/
+.venv/
+
+# Agent / tooling
+.claude/

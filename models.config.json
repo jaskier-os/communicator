@@ -1,0 +1,72 @@
+{
+  "models": {
+    "claude-sonnet-4-6": {
+      "endpoint": "https://api.anthropic.com/v1/messages",
+      "inputFormat": "openai",
+      "outputFormat": "openai",
+      "originalFormat": "anthropic",
+      "authType": "oauth",
+      "defaults": {
+        "max_tokens": 8192
+      },
+      "headers": {
+        "anthropic-beta": "claude-code-20250219,oauth-2025-04-20,interleaved-thinking-2025-05-14,redact-thinking-2026-02-12,context-management-2025-06-27,prompt-caching-scope-2026-01-05,advanced-tool-use-2025-11-20,effort-2025-11-24"
+      }
+    },
+    "claude-opus-4-6": {
+      "endpoint": "https://api.anthropic.com/v1/messages",
+      "inputFormat": "openai",
+      "outputFormat": "openai",
+      "originalFormat": "anthropic",
+      "authType": "oauth",
+      "defaults": {
+        "max_tokens": 8192
+      },
+      "headers": {
+        "anthropic-beta": "claude-code-20250219,oauth-2025-04-20,interleaved-thinking-2025-05-14,redact-thinking-2026-02-12,context-management-2025-06-27,prompt-caching-scope-2026-01-05,advanced-tool-use-2025-11-20,effort-2025-11-24"
+      }
+    },
+    "claude-opus-4-8": {
+      "endpoint": "https://api.anthropic.com/v1/messages",
+      "inputFormat": "openai",
+      "outputFormat": "openai",
+      "originalFormat": "anthropic",
+      "authType": "oauth",
+      "defaults": {
+        "max_tokens": 8192
+      },
+      "headers": {
+        "anthropic-beta": "claude-code-20250219,oauth-2025-04-20,interleaved-thinking-2025-05-14,redact-thinking-2026-02-12,context-management-2025-06-27,prompt-caching-scope-2026-01-05,advanced-tool-use-2025-11-20,effort-2025-11-24"
+      }
+    },
+    "claude-haiku-4-5-20251001": {
+      "endpoint": "https://api.anthropic.com/v1/messages",
+      "inputFormat": "openai",
+      "outputFormat": "openai",
+      "originalFormat": "anthropic",
+      "authType": "oauth",
+      "defaults": {
+        "max_tokens": 8192
+      },
+      "headers": {
+        "anthropic-beta": "oauth-2025-04-20,interleaved-thinking-2025-05-14,redact-thinking-2026-02-12,context-management-2025-06-27,prompt-caching-scope-2026-01-05,advanced-tool-use-2025-11-20,effort-2025-11-24"
+      }
+    }
+  },
+  "aliases": {
+    "sonnet": "claude-sonnet-4-6",
+    "sonnet-4-6": "claude-sonnet-4-6",
+    "sonnet-4.6": "claude-sonnet-4-6",
+    "claude-sonnet": "claude-sonnet-4-6",
+    "opus": "claude-opus-4-8",
+    "opus-4-6": "claude-opus-4-6",
+    "opus-4.6": "claude-opus-4-6",
+    "opus-4-8": "claude-opus-4-8",
+    "opus-4.8": "claude-opus-4-8",
+    "claude-opus": "claude-opus-4-8",
+    "haiku": "claude-haiku-4-5-20251001",
+    "haiku-4-5": "claude-haiku-4-5-20251001",
+    "haiku-4.5": "claude-haiku-4-5-20251001",
+    "claude-haiku": "claude-haiku-4-5-20251001"
+  }
+}

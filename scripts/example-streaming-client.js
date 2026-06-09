@@ -18,7 +18,7 @@ import http from 'http';
 import { EventEmitter } from 'events';
 
 // Configuration
-const API_URL = process.env.API_URL || 'http://localhost:3000';
+const API_URL = process.env.API_URL || 'http://localhost:8000';
 const API_KEY = process.env.API_KEY;
 
 if (!API_KEY) {

@@ -1,6 +1,10 @@
 # Dependencies
 node_modules/
 
+# Stray non-npm lockfiles (this project uses npm / package-lock.json)
+pnpm-lock.yaml
+yarn.lock
+
 # Environment files
 .env
 .env.local

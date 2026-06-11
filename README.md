@@ -1,5 +1,7 @@
 # LLM Communicator Server
 
+> **Docs & wiki:** [github.com/jaskier-os/docs/wiki](https://github.com/jaskier-os/docs/wiki)
+
 A modern Node.js + Koa server for routing prompts to custom LLM APIs with flexible configuration.
 
 ## Features

@@ -4,7 +4,8 @@
 
 variables:
   REGISTRY: localhost:5000
-  DEPLOY_REPO: ssh://git@10.29.71.1:41922/infrastructure/deploy.git
+  # DEPLOY_REPO (SSH URL of the deploy manifests repo) is provided as a
+  # protected CI/CD variable in the project settings.
 
 stages:
   - build

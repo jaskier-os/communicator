@@ -1,5 +1,31 @@
 {
   "models": {
+    "claude-sonnet-5": {
+      "endpoint": "https://api.anthropic.com/v1/messages",
+      "inputFormat": "openai",
+      "outputFormat": "openai",
+      "originalFormat": "anthropic",
+      "authType": "oauth",
+      "defaults": {
+        "max_tokens": 8192
+      },
+      "headers": {
+        "anthropic-beta": "claude-code-20250219,oauth-2025-04-20,interleaved-thinking-2025-05-14,redact-thinking-2026-02-12,context-management-2025-06-27,prompt-caching-scope-2026-01-05,advanced-tool-use-2025-11-20,effort-2025-11-24"
+      }
+    },
+    "claude-fable-5": {
+      "endpoint": "https://api.anthropic.com/v1/messages",
+      "inputFormat": "openai",
+      "outputFormat": "openai",
+      "originalFormat": "anthropic",
+      "authType": "oauth",
+      "defaults": {
+        "max_tokens": 8192
+      },
+      "headers": {
+        "anthropic-beta": "claude-code-20250219,oauth-2025-04-20,interleaved-thinking-2025-05-14,redact-thinking-2026-02-12,context-management-2025-06-27,prompt-caching-scope-2026-01-05,advanced-tool-use-2025-11-20,effort-2025-11-24"
+      }
+    },
     "claude-sonnet-4-6": {
       "endpoint": "https://api.anthropic.com/v1/messages",
       "inputFormat": "openai",
@@ -54,6 +80,12 @@
     }
   },
   "aliases": {
+    "sonnet-5": "claude-sonnet-5",
+    "sonnet-5.0": "claude-sonnet-5",
+    "fable": "claude-fable-5",
+    "fable-5": "claude-fable-5",
+    "fable-5.0": "claude-fable-5",
+    "claude-fable": "claude-fable-5",
     "sonnet": "claude-sonnet-4-6",
     "sonnet-4-6": "claude-sonnet-4-6",
     "sonnet-4.6": "claude-sonnet-4-6",

@@ -51,7 +51,8 @@ export function transformAnthropicToOpenAIResponse(anthropicResponse) {
     'end_turn': 'stop',
     'tool_use': 'tool_calls',
     'max_tokens': 'length',
-    'stop_sequence': 'stop'
+    'stop_sequence': 'stop',
+    'refusal': 'content_filter'
   };
 
   return {

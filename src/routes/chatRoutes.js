@@ -69,6 +69,10 @@ const chatCompletionsSchema = Joi.object({
     Joi.object().unknown(true)
   ).optional(),
   effort: Joi.string().valid('low', 'medium', 'high', 'max').optional(),
+  // Auth path for gateway models: 'oauth' (Claude subscription, default) or
+  // 'api' (direct Anthropic API key, billed per-token). Lets a caller measure
+  // real API cost by routing the same request through the paid key.
+  api_mode: Joi.string().valid('oauth', 'api').optional(),
 }).unknown(true);
 
 /**
@@ -120,12 +124,14 @@ router.post('/completions', async (ctx) => {
     const normalizedValue = {
       ...value,
       maxTokens: value.max_tokens || value.maxTokens,
+      apiMode: value.api_mode || 'oauth',
     };
 
     logger.info('Processing chat completions request', {
       model: normalizedValue.model,
       messageCount: normalizedValue.messages.length,
       stream: normalizedValue.stream,
+      apiMode: normalizedValue.apiMode,
     });
 
     if (normalizedValue.stream) {

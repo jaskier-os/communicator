@@ -27,9 +27,12 @@ const { default: GatewayProvider } = await import('./gatewayProvider.js');
 function createTestProvider() {
   const provider = new GatewayProvider();
   let capturedHeaders = null;
+  let capturedBody = null;
 
-  // Override auth to avoid real credential fetch
-  provider.getAuthHeader = async (config) => {
+  // Override auth to avoid real credential fetch. Mirror the real branch:
+  // api mode returns the x-api-key header regardless of the model authType.
+  provider.getAuthHeader = async (config, useApiKeyMode = false) => {
+    if (useApiKeyMode) return { 'X-Api-Key': 'test-api-key' };
     if (config.authType === 'oauth') return { 'Authorization': 'Bearer test-oauth-token' };
     return {};
   };
@@ -40,14 +43,16 @@ function createTestProvider() {
     return '2.1.2';
   };
 
-  // Capture headers instead of making real HTTP requests
-  provider.makeRequest = async (_config, _body, headers) => {
+  // Capture headers + body instead of making real HTTP requests
+  provider.makeRequest = async (_config, body, headers) => {
     capturedHeaders = headers;
+    capturedBody = body;
     return { id: 'test', type: 'message', content: [], model: 'test', usage: {} };
   };
 
-  provider.makeStreamingRequest = (_config, _body, headers) => {
+  provider.makeStreamingRequest = (_config, body, headers) => {
     capturedHeaders = headers;
+    capturedBody = body;
     return new PassThrough();
   };
 
@@ -57,6 +62,11 @@ function createTestProvider() {
       const h = capturedHeaders;
       capturedHeaders = null;
       return h;
+    },
+    getBody: () => {
+      const b = capturedBody;
+      capturedBody = null;
+      return b;
     }
   };
 }
@@ -321,6 +331,72 @@ describe('sendChatCompletion: per-model beta headers', () => {
     const betas = getHeaders()['anthropic-beta'].split(',');
     assert.ok(!betas.includes('claude-code-20250219'), 'haiku must not have claude-code');
     assert.equal(betas.length, 7, `expected 7 betas, got ${betas.length}`);
+  });
+});
+
+describe('sendChatCompletion: api_mode routing', () => {
+  it('oauth (default) uses Bearer auth and claude-cli spoof headers', async () => {
+    const { provider, getHeaders } = createTestProvider();
+    await provider.sendChatCompletion({
+      messages: [{ role: 'system', content: 'You grade essays.' }, { role: 'user', content: 'test' }],
+      model: 'claude-opus-4-6',
+    });
+    const h = getHeaders();
+    assert.equal(h['Authorization'], 'Bearer test-oauth-token');
+    assert.equal(h['X-Api-Key'], undefined);
+    assert.equal(h['x-app'], 'cli');
+    assert.equal(h['User-Agent'], 'claude-cli/2.1.2 (external, cli)');
+  });
+
+  it('api mode uses X-Api-Key and drops claude-cli spoof headers', async () => {
+    const { provider, getHeaders } = createTestProvider();
+    await provider.sendChatCompletion({
+      messages: [{ role: 'user', content: 'test' }],
+      model: 'claude-opus-4-6',
+      apiMode: 'api',
+    });
+    const h = getHeaders();
+    assert.equal(h['X-Api-Key'], 'test-api-key');
+    assert.equal(h['Authorization'], undefined);
+    assert.equal(h['x-app'], undefined);
+    assert.equal(h['User-Agent'], undefined);
+    assert.equal(h['X-Claude-Code-Session-Id'], undefined);
+    assert.equal(h['x-client-request-id'], undefined);
+  });
+
+  it('api mode strips oauth-only betas but keeps effort/context betas', async () => {
+    const { provider, getHeaders } = createTestProvider();
+    await provider.sendChatCompletion({
+      messages: [{ role: 'user', content: 'test' }],
+      model: 'claude-opus-4-6',
+      apiMode: 'api',
+    });
+    const betas = (getHeaders()['anthropic-beta'] || '').split(',').filter(Boolean);
+    assert.ok(!betas.includes('oauth-2025-04-20'), 'oauth beta must be stripped');
+    assert.ok(!betas.includes('claude-code-20250219'), 'claude-code beta must be stripped');
+    assert.ok(betas.includes('effort-2025-11-24'), 'effort beta must survive');
+    assert.ok(betas.includes('context-management-2025-06-27'), 'context beta must survive');
+  });
+
+  it('api mode preserves the real system prompt (no Claude Code identity)', async () => {
+    const { provider, getBody } = createTestProvider();
+    await provider.sendChatCompletion({
+      messages: [{ role: 'system', content: 'You grade essays.' }, { role: 'user', content: 'test' }],
+      model: 'claude-opus-4-6',
+      apiMode: 'api',
+    });
+    const body = getBody();
+    assert.equal(body.system[0].text, 'You grade essays.');
+  });
+
+  it('oauth mode forces the Claude Code identity system block', async () => {
+    const { provider, getBody } = createTestProvider();
+    await provider.sendChatCompletion({
+      messages: [{ role: 'system', content: 'You grade essays.' }, { role: 'user', content: 'test' }],
+      model: 'claude-opus-4-6',
+    });
+    const body = getBody();
+    assert.equal(body.system[0].text, "You are Claude Code, Anthropic's official CLI for Claude.");
   });
 });
 

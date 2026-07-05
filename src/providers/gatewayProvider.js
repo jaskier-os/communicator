@@ -14,6 +14,7 @@ import {
   createAnthropicToOpenAIStreamTransformer
 } from '../transformers/index.js';
 import { ClaudeCredentials } from '../lib/claude_credentials.js';
+import appConfig from '../config/index.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -67,7 +68,16 @@ class GatewayProvider extends BaseProvider {
     return { modelName: resolved, config };
   }
 
-  async getAuthHeader(config) {
+  async getAuthHeader(config, useApiKeyMode = false) {
+    // api mode overrides an oauth model's auth with the direct API key.
+    if (useApiKeyMode) {
+      const apiKey = appConfig.llm.anthropicApiKey || '';
+      if (!apiKey) {
+        throw new Error('api_mode=api requires ANTHROPIC_API_KEY to be set');
+      }
+      return { 'X-Api-Key': apiKey };
+    }
+
     switch (config.authType) {
       case 'oauth':
         const token = await ClaudeCredentials.getValidToken();
@@ -123,8 +133,17 @@ class GatewayProvider extends BaseProvider {
     tool_choice = null,
     signal = null,
     effort,
+    apiMode = 'oauth',
   }) {
     const { modelName, config } = this.resolveModel(model);
+
+    // An OAuth-configured model can be routed two ways:
+    //   - oauth (default): Claude subscription -- Bearer OAuth token, claude-cli
+    //     spoofing headers, forced "Claude Code" identity, oauth betas.
+    //   - api: direct Anthropic API key (billed per-token) -- x-api-key auth,
+    //     no spoofing, real system prompt, no oauth betas.
+    // api_mode only affects oauth-authType models; others ignore it.
+    const useApiKeyMode = apiMode === 'api' && config.authType === 'oauth';
 
     // Build the request in the client's input format first
     let request = {
@@ -143,12 +162,35 @@ class GatewayProvider extends BaseProvider {
     const needsRequestTransform = config.inputFormat !== config.originalFormat;
 
     if (needsRequestTransform && config.inputFormat === 'openai' && config.originalFormat === 'anthropic') {
+      // In api mode we keep the caller's system message intact so the real
+      // prompt reaches inference; the transformer normally demotes system to
+      // user turns, so re-attach it as a top-level system block here.
+      const originalSystem = useApiKeyMode
+        ? messages.filter(m => m.role === 'system').map(m =>
+            typeof m.content === 'string' ? m.content : JSON.stringify(m.content)
+          ).filter(Boolean).join('\n\n')
+        : null;
+
+      // In api mode, drop system turns before transforming so they are NOT
+      // demoted into user messages (they are re-attached as a system block
+      // below). Non-system turns are untouched.
+      if (useApiKeyMode) {
+        request.messages = messages.filter(m => m.role !== 'system');
+      }
+
       request = transformOpenAIToAnthropicRequest(request);
 
-      // The Claude Code identity block is the ONLY system message allowed to
-      // reach inference. Any other system content is demoted to user turns by
-      // the transformer; this hard-set drops anything else from system.
-      if (config.authType === 'oauth') {
+      if (useApiKeyMode) {
+        if (originalSystem) {
+          request.system = [{ type: 'text', text: originalSystem }];
+        } else {
+          delete request.system;
+        }
+      } else if (config.authType === 'oauth') {
+        // The Claude Code identity block is the ONLY system message allowed to
+        // reach inference for the subscription (oauth) path. Any other system
+        // content is demoted to user turns by the transformer; this hard-set
+        // drops anything else from system.
         request.system = [
           { type: 'text', text: "You are Claude Code, Anthropic's official CLI for Claude." }
         ];
@@ -163,18 +205,38 @@ class GatewayProvider extends BaseProvider {
     }
 
     // Get auth headers
-    const authHeaders = await this.getAuthHeader(config);
+    const authHeaders = await this.getAuthHeader(config, useApiKeyMode);
     const claudeVersion = await this.ensureClaudeVersion();
 
-    // Build full headers (betas come from config.headers per model)
+    // Per-model betas. In api mode, strip oauth-only betas (they are rejected
+    // by the direct API); keep the rest (effort, context-management, caching).
+    const modelHeaders = { ...(config.headers || {}) };
+    if (useApiKeyMode && typeof modelHeaders['anthropic-beta'] === 'string') {
+      const kept = modelHeaders['anthropic-beta']
+        .split(',')
+        .map(s => s.trim())
+        .filter(b => b && !b.startsWith('oauth-') && !b.startsWith('claude-code-'));
+      if (kept.length) {
+        modelHeaders['anthropic-beta'] = kept.join(',');
+      } else {
+        delete modelHeaders['anthropic-beta'];
+      }
+    }
+
+    // Build full headers. In api mode we send NO claude-cli spoofing headers --
+    // just the direct-API auth + version + surviving betas.
     const headers = {
       'Content-Type': 'application/json',
       'anthropic-version': '2023-06-01',
-      'X-Claude-Code-Session-Id': this.sessionId,
-      'x-client-request-id': randomUUID(),
+      ...(useApiKeyMode ? {} : {
+        'X-Claude-Code-Session-Id': this.sessionId,
+        'x-client-request-id': randomUUID(),
+      }),
       ...authHeaders,
-      ...(config.headers || {}),
-      ...(config.authType === 'oauth' ? this.getOAuthHeaders(claudeVersion, stream) : {})
+      ...modelHeaders,
+      ...(!useApiKeyMode && config.authType === 'oauth'
+        ? this.getOAuthHeaders(claudeVersion, stream)
+        : {})
     };
 
     logger.info('Gateway request', {
@@ -186,6 +248,7 @@ class GatewayProvider extends BaseProvider {
       needsRequestTransform,
       needsResponseTransform: config.outputFormat !== config.originalFormat,
       stream,
+      apiMode: useApiKeyMode ? 'api' : 'oauth',
       messageCount: messages?.length || 0
     });
 

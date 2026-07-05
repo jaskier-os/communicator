@@ -41,6 +41,11 @@ const envSchema = Joi.object({
   // Claude CLI (optional, defaults to 'claude')
   CLAUDE_CLI_COMMAND: Joi.string().default('claude'),
 
+  // Anthropic direct-API key (billed per-token). Used by gateway models when a
+  // request opts into api_mode='api' instead of the default oauth (subscription)
+  // path. Optional -- if unset, api_mode='api' requests fail loudly.
+  ANTHROPIC_API_KEY: Joi.string().allow('').optional(),
+
   // Request Timeout
   REQUEST_TIMEOUT_MS: Joi.number().default(30000),
 
@@ -104,6 +109,7 @@ export default {
     timeoutMs: envVars.REQUEST_TIMEOUT_MS,
     streaming: envVars.ENABLE_STREAMING,
     claudeCliCommand: envVars.CLAUDE_CLI_COMMAND,
+    anthropicApiKey: envVars.ANTHROPIC_API_KEY,
   },
   yandexCloud: {
     enabled: envVars.YC_VM_ENABLED,
